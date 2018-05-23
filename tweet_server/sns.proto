@@ -1,0 +1,88 @@
+
+
+syntax = "proto3";
+
+package csce438;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// The messenger service definition.
+service SNSService{
+
+  rpc Login (Request) returns (Reply) {}  	//oneTime
+  rpc List (Request) returns (ListReply) {}	//oneTime
+  rpc Follow (Request) returns (Reply) {}	//oneTime
+  rpc UnFollow (Request) returns (Reply) {}	//oneTime
+  rpc Timeline (stream Message) returns (stream Message) {} //Bidirectional 
+
+  //this rpc will be used for client pinging router to get a host-port back,	
+  rpc Onetime_c_to_r(Simple_string) returns (Host_port) {}
+
+  //this rpc is used between router and server(s) to keep track if server is alive
+  rpc Bidirectional_r_and_s(stream RouterMessage) returns (stream RouterMessage) {}
+
+  // the master/slave pair will commmunicate here, when one dies, the other
+  // starts a new server to handle failures
+  rpc BuddyConnection(stream Host_port) returns (stream Host_port) {}
+
+  //this rpc will be used between client and server
+  rpc Bidirectional_s_and_c(stream Simple_string) returns (stream Simple_string) {}
+
+  // one server will send one clients posts to that one server
+  rpc BroadcastPosts(ClientPosts) returns (google.protobuf.Empty) {}
+
+  //this rpc only used for sending the updates from server to its buddy
+  rpc Onetime_s_to_buddy(Message) returns (Message) {}
+}
+
+message ListReply {
+  repeated string all_users = 1;
+  repeated string followers = 2;
+}
+
+message Request {
+  string username = 1;
+  repeated string arguments = 2;
+}
+
+message Reply {
+  string msg = 1;
+}
+
+message Message {
+  //Username who sent the message
+  string username = 1;
+  //Message from the user
+  string msg = 2;
+  //Time the message was sent
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message Simple_string{
+  string str = 1;
+  string master_host = 2;
+  string master_port = 3;
+}
+
+message Host_port{
+  string host = 1;
+  string port = 2;
+}
+
+enum RouterOp{
+  CONNECT = 0;
+  BCAST = 1;
+  NONE = 2;
+}
+
+message RouterMessage{
+    Host_port hp = 1;
+    repeated Host_port machines = 2;
+    RouterOp operation = 3;
+}
+
+message ClientPosts{
+  string username = 1;
+  repeated string posts = 2;
+}
